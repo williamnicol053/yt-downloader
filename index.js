@@ -1,14 +1,3 @@
-const express = require("express");
-const ytdl = require("ytdl-core");
-const cors = require("cors");
-
-const app = express();
-app.use(cors());
-
-app.get("/", (req, res) => {
-  res.send("YouTube Downloader API is running");
-});
-
 app.get("/download", async (req, res) => {
   const { id, type } = req.query;
 
@@ -19,20 +8,27 @@ app.get("/download", async (req, res) => {
   const url = `https://www.youtube.com/watch?v=${id}`;
 
   try {
+    const info = await ytdl.getInfo(url);
+
     if (type === "mp3") {
       res.header("Content-Disposition", 'attachment; filename="audio.mp3"');
-      ytdl(url, { filter: "audioonly" }).pipe(res);
+
+      ytdl(url, {
+        filter: "audioonly",
+        highWaterMark: 1 << 25
+      }).pipe(res);
+
     } else {
       res.header("Content-Disposition", 'attachment; filename="video.mp4"');
-      ytdl(url, { quality: "highestvideo" }).pipe(res);
+
+      ytdl(url, {
+        quality: "highestvideo",
+        highWaterMark: 1 << 25
+      }).pipe(res);
     }
+
   } catch (err) {
     console.error(err);
-    res.status(500).send("Download failed");
+    res.status(500).send("Failed to process video");
   }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
